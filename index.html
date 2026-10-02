@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13251d">
+<title>Next Year Goal</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--green:#146b3a;--dark:#10251c;--light:#f6fbf7;--mint:#eaffef;--gold:#f3c84b;--text:#102018;--muted:#718078;--red:#a94432}
+*{box-sizing:border-box}body{margin:0;background:var(--light);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text)}
+.app{max-width:720px;margin:auto;padding:18px 16px 40px}
+.hero{background:linear-gradient(145deg,#0f4d2d,#176f3d);color:#fff;border-radius:28px;padding:25px 22px 22px;box-shadow:0 12px 30px #0c321d22}
+.kicker{font-size:13px;letter-spacing:2px;opacity:.8}.hero h1{font-size:34px;margin:8px 0 2px}.hero p{margin:0;color:#d8eadf}
+.progress{height:10px;background:#ffffff30;border-radius:20px;margin:20px 0 12px;overflow:hidden}.bar{height:100%;background:var(--gold);width:0%;transition:.35s}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#ffffff12;border-radius:18px;padding:14px}.stat b{font-size:25px}.stat span{display:block;color:#d6e6dd;font-size:13px;margin-top:3px}
+.card{background:#fff;border:1px solid #dce9df;border-radius:24px;padding:20px;margin-top:16px;box-shadow:0 7px 20px #1735220c}
+.tree{text-align:center;background:var(--mint);overflow:hidden}.tree .emoji{font-size:72px;line-height:1;margin:5px 0}.tree h2{margin:5px 0 4px;font-size:23px}.tree p{margin:0;color:var(--muted)}
+.week{text-align:center}.week small{color:var(--muted);font-weight:700;letter-spacing:1px}.amount{font-size:52px;font-weight:850;margin:3px 0 14px;color:var(--green)}button{border:0;border-radius:16px;padding:15px 18px;font-size:17px;font-weight:800;cursor:pointer}.save{width:100%;background:var(--green);color:#fff}.save:disabled{background:#c9d8cf;color:#718078}.secondary{background:#eef3ef;color:#294235;width:100%;margin-top:10px}.danger{color:var(--red);background:#fff1ee;width:100%;margin-top:10px}
+.motivation{background:#fff8e8;border-color:#f2dfac;color:#704f00;font-weight:700}.list h2{margin:0 0 4px}.hint{color:var(--muted);margin:0 0 15px}.row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e7eee9;padding:13px 0}.row:first-of-type{border-top:0}.row b{font-size:18px}.row small{display:block;color:var(--muted)}.saved{color:var(--green);font-weight:800}.locked{color:#89958f;font-weight:700}
+.modal{position:fixed;inset:0;background:#08130dcc;display:none;align-items:flex-end;justify-content:center;padding:14px;z-index:5}.modal.open{display:flex}.sheet{background:#fff;width:min(680px,100%);border-radius:25px;padding:22px}.sheet h2{margin-top:0}.sheet input{width:100%;padding:15px;border:1px solid #ccd9d0;border-radius:13px;font-size:18px;margin:8px 0 12px}.note{font-size:13px;color:var(--muted)}
+footer{text-align:center;color:#8b968f;font-size:12px;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="hero">
+    <div class="kicker">NEXT YEAR GOAL</div>
+    <h1>₹2,00,000 Savings Challenge</h1>
+    <p>100 weeks • small steps, big goal</p>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div class="stats">
+      <div class="stat"><b id="weekStat">0/100</b><span>weeks completed</span></div>
+      <div class="stat"><b id="percent">0%</b><span>goal progress</span></div>
+    </div>
+  </section>
+
+  <section class="card tree">
+    <div class="emoji" id="plant">🌱</div>
+    <h2 id="treeTitle">Your goal is starting!</h2>
+    <p id="treeText">Every saved week helps your plant grow.</p>
+  </section>
+
+  <section class="card week">
+    <small id="weekLabel">WEEK 1</small>
+    <div class="amount" id="amount">₹1,500</div>
+    <button class="save" id="saveBtn">✓ Mark This Week Saved</button>
+    <button class="secondary" id="manageBtn">Manage Savings</button>
+  </section>
+
+  <section class="card motivation" id="motivation">🌱 Start small. Stay consistent. Your future goal is built one week at a time.</section>
+
+  <section class="card list">
+    <h2>Your weekly journey</h2>
+    <p class="hint">Only the weekly investment is shown. Your accumulated balance stays private.</p>
+    <div id="rows"></div>
+  </section>
+
+  <button class="danger" id="resetBtn">Reset My Progress</button>
+  <footer>Personal savings tracker • No interest or returns included</footer>
+</div>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h2>Manage Savings</h2>
+    <p>If you take money out, record the amount here. Your completed weeks stay completed; the app quietly adds the amount back into the remaining plan.</p>
+    <input id="withdrawInput" type="number" min="1" step="50" placeholder="Amount taken out (₹)">
+    <button class="save" id="withdrawBtn">Adjust Future Savings</button>
+    <button class="secondary" id="closeBtn">Cancel</button>
+    <p class="note">Your total balance is intentionally not displayed.</p>
+  </div>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.ready(); tg.expand(); }
+
+const BASE = [1500,1750,2000,2250,2500];
+const WEEKS = 100, GOAL = 200000;
+const key = "nextYearGoal_v1";
+
+let state = JSON.parse(localStorage.getItem(key) || "null") || {
+  completed: [],
+  adjustment: 0,
+  withdrawalTotal: 0
+};
+
+function saveState(){localStorage.setItem(key,JSON.stringify(state));}
+
+function baseAmount(i){ return BASE[i % 5]; }
+
+function schedule(){
+  const remainingAdjustment = state.adjustment;
+  const completedCount = state.completed.length;
+  const remainingWeeks = WEEKS - completedCount;
+  const extraEach = remainingWeeks > 0 ? remainingAdjustment / remainingWeeks : 0;
+  return Array.from({length:WEEKS},(_,i)=>{
+    let v = baseAmount(i);
+    if(i >= completedCount && remainingAdjustment > 0) v += extraEach;
+    return Math.round(v/50)*50;
+  });
+}
+
+function completedSum(){ return state.completed.reduce((a,b)=>a+baseAmount(b),0); }
+
+function pct(){ return Math.min(100, Math.round((completedSum()/GOAL)*100)); }
+
+function plantStage(p){
+  if(p>=100) return ["🌳","Goal reached!","You grew this goal one week at a time."];
+  if(p>=75) return ["🌿","Your plant is thriving!","The finish line is getting closer."];
+  if(p>=50) return ["🪴","Halfway growth!","Keep giving your goal attention."];
+  if(p>=25) return ["🌱","Strong roots!","Consistency is doing the work."];
+  if(p>0) return ["🌱","Your plant is growing!","Every saved week matters."];
+  return ["🌰","Your goal is starting!","Plant the first seed by saving this week."];
+}
+
+function motivation(p){
+  if(p>=100) return "🎉 ₹2,00,000 goal reached. You kept the promise you made to yourself.";
+  if(p>=90) return "🔥 Final stretch. Protect the habit and finish what you started.";
+  if(p>=75) return "💪 75% complete. Your future goal is becoming real.";
+  if(p>=50) return "🚀 Halfway there. Keep the same discipline.";
+  if(p>=25) return "🌱 25% complete. Small deposits are becoming a serious habit.";
+  if(p>0) return "👏 You started. Now make the next week count.";
+  return "🌱 Start small. Stay consistent. Your future goal is built one week at a time.";
+}
+
+function render(){
+  const done = state.completed.length;
+  const p = pct();
+  const sch = schedule();
+  document.getElementById("weekStat").textContent = `${done}/${WEEKS}`;
+  document.getElementById("percent").textContent = `${p}%`;
+  document.getElementById("bar").style.width = `${p}%`;
+  const [emoji,title,text] = plantStage(p);
+  document.getElementById("plant").textContent=emoji;
+  document.getElementById("treeTitle").textContent=title;
+  document.getElementById("treeText").textContent=text;
+  document.getElementById("motivation").textContent=motivation(p);
+
+  const next = done < WEEKS ? done : WEEKS-1;
+  document.getElementById("weekLabel").textContent=`WEEK ${done+1 > WEEKS ? WEEKS : done+1}`;
+  document.getElementById("amount").textContent=`₹${sch[next].toLocaleString("en-IN")}`;
+  document.getElementById("saveBtn").disabled = done >= WEEKS;
+
+  const rows=document.getElementById("rows");
+  rows.innerHTML="";
+  const start=Math.max(0,done-2), end=Math.min(WEEKS,start+12);
+  for(let i=start;i<end;i++){
+    const r=document.createElement("div"); r.className="row";
+    const isDone=state.completed.includes(i);
+    const amt=sch[i];
+    r.innerHTML=`<div><b>Week ${i+1}</b><small>Investment: ₹${amt.toLocaleString("en-IN")}</small></div>
+      <div class="${isDone?'saved':'locked'}">${isDone?'✓ Saved':'○ Pending'}</div>`;
+    rows.appendChild(r);
+  }
+}
+
+document.getElementById("saveBtn").onclick=()=>{
+  const next=state.completed.length;
+  if(next>=WEEKS)return;
+  state.completed.push(next);
+  saveState(); render();
+};
+
+document.getElementById("manageBtn").onclick=()=>document.getElementById("modal").classList.add("open");
+document.getElementById("closeBtn").onclick=()=>document.getElementById("modal").classList.remove("open");
+
+document.getElementById("withdrawBtn").onclick=()=>{
+  const n=Number(document.getElementById("withdrawInput").value);
+  if(!Number.isFinite(n)||n<=0)return;
+  state.adjustment += Math.round(n/50)*50;
+  state.withdrawalTotal += Math.round(n/50)*50;
+  saveState();
+  document.getElementById("withdrawInput").value="";
+  document.getElementById("modal").classList.remove("open");
+  render();
+};
+
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("Reset all Next Year Goal progress?")){
+    state={completed:[],adjustment:0,withdrawalTotal:0}; saveState(); render();
+  }
+};
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
+render();
+</script>
+</body>
+</html>

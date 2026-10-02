@@ -1,0 +1,9 @@
+{
+  "name": "Next Year Goal",
+  "short_name": "Next Year Goal",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6fbf7",
+  "theme_color": "#13251d",
+  "description": "Personal ₹2,00,000 savings challenge."
+}
